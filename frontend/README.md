@@ -1,2 +1,0 @@
-# blog-application-frontend
-blogアプリケーションフロントエンド
