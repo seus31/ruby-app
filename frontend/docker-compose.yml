@@ -1,0 +1,28 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      - NODE_ENV=${NODE_ENV}
+    volumes:
+      - ./src:/app
+      - blog-application-frontend-node-modules:/app/node_modules
+      - blog-application-frontend-next:/app/.next
+    networks:
+      - blog-application-frontend-network
+    ports:
+      - "${EXPOSE_APP_PORT}:3000"
+    command: npm run dev
+    tty: true
+
+networks:
+  blog-application-frontend-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.35.2.0/24
+
+volumes:
+  blog-application-frontend-node-modules:
+  blog-application-frontend-next:

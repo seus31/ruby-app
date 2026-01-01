@@ -1,0 +1,13 @@
+FROM node:22.13.1
+
+ENV WEB_APP_PATH /app
+
+RUN mkdir $WEB_APP_PATH
+WORKDIR $WEB_APP_PATH
+
+COPY ./src $WEB_APP_PATH
+
+RUN npm install
+RUN npm run build
+
+EXPOSE 3000
