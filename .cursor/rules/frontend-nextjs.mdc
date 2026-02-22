@@ -1,0 +1,351 @@
+---
+description: Next.js + TypeScript フロントエンド開発ルール（Cursor用）
+---
+
+# Next.js + TypeScript 開発ルール
+
+## 🚨 環境汚染の防止（絶対厳守）
+**ホストマシンで `npm install` やビルドコマンドを実行しない。**
+
+すべてのコマンドは Docker コンテナ内で実行する：
+```bash
+docker compose run --rm frontend npm install
+docker compose run --rm frontend npm run build
+docker compose run --rm frontend npm run lint
+```
+
+---
+
+## ディレクトリ構成
+```
+frontend/src/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── register/
+│   ├── dashboard/
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── ui/                  # shadcn/ui や共通UIコンポーネント
+│   └── layouts/
+├── features/                # 機能単位のディレクトリ
+│   ├── auth/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── api.ts
+│   └── users/
+├── lib/
+│   ├── axios.ts             # Axios設定
+│   └── utils.ts
+└── types/
+    ├── user.ts
+    └── api.ts
+```
+
+---
+
+## コーディングスタイル
+
+### コンポーネント（Server Component）
+```typescript
+// app/users/page.tsx
+import { getUsers } from '@/features/users/api';
+import UserList from '@/features/users/components/UserList';
+
+export default async function UsersPage() {
+  const users = await getUsers();
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">ユーザー一覧</h1>
+      <UserList users={users} />
+    </div>
+  );
+}
+```
+
+### コンポーネント（Client Component）
+```typescript
+// features/users/components/UserList.tsx
+'use client';
+
+import { useState } from 'react';
+import type { User } from '@/types/user';
+
+type UserListProps = {
+  users: User[];
+};
+
+export default function UserList({ users }: UserListProps) {
+  const [filter, setFilter] = useState('');
+
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="ユーザーを検索"
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className="mb-4 px-4 py-2 border rounded"
+      />
+      <ul className="space-y-2">
+        {filteredUsers.map(user => (
+          <li key={user.id} className="p-4 border rounded">
+            {user.name} ({user.email})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### カスタムフック
+```typescript
+// features/users/hooks/useUsers.ts
+'use client';
+
+import { useState, useEffect } from 'react';
+import { getUsers } from '../api';
+import type { User } from '@/types/user';
+
+export function useUsers() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    getUsers()
+      .then(setUsers)
+      .catch(setError)
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { users, loading, error };
+}
+```
+
+### API Client
+```typescript
+// features/users/api.ts
+import axios from '@/lib/axios';
+import type { User } from '@/types/user';
+
+export async function getUsers(): Promise<User[]> {
+  const response = await axios.get<User[]>('/api/v1/users');
+  return response.data;
+}
+
+export async function getUserById(id: number): Promise<User> {
+  const response = await axios.get<User>(`/api/v1/users/${id}`);
+  return response.data;
+}
+
+export async function createUser(data: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  const response = await axios.post<User>('/api/v1/users', data);
+  return response.data;
+}
+```
+
+### 型定義
+```typescript
+// types/user.ts
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+};
+
+export type UserFormData = Omit<User, 'id' | 'createdAt'> & {
+  password: string;
+};
+
+// types/api.ts
+export type ApiResponse<T> = {
+  data: T;
+  message?: string;
+};
+
+export type ApiError = {
+  error: string;
+  errors?: string[];
+};
+```
+
+---
+
+## バリデーション（Zod）
+
+```typescript
+// features/auth/schema.ts
+import { z } from 'zod';
+
+export const loginSchema = z.object({
+  email: z.string().email('有効なメールアドレスを入力してください'),
+  password: z.string().min(8, 'パスワードは8文字以上である必要があります'),
+});
+
+export type LoginFormData = z.infer<typeof loginSchema>;
+```
+
+使用例：
+```typescript
+'use client';
+
+import { useState } from 'react';
+import { loginSchema, type LoginFormData } from './schema';
+
+export default function LoginForm() {
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    };
+
+    const result = loginSchema.safeParse(data);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    // API呼び出し
+  };
+
+  return <form onSubmit={handleSubmit}>{/* フォーム要素 */}</form>;
+}
+```
+
+---
+
+## エラーハンドリング
+
+### エラーバウンダリ
+```typescript
+// app/error.tsx
+'use client';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h2 className="text-2xl font-bold mb-4">エラーが発生しました</h2>
+      <p className="mb-4">{error.message}</p>
+      <button
+        onClick={reset}
+        className="px-4 py-2 bg-blue-500 text-white rounded"
+      >
+        再試行
+      </button>
+    </div>
+  );
+}
+```
+
+### try-catch
+```typescript
+try {
+  const response = await axios.post('/api/v1/users', data);
+  return response.data;
+} catch (error) {
+  if (axios.isAxiosError(error)) {
+    throw new Error(error.response?.data?.error || 'リクエストに失敗しました');
+  }
+  throw error;
+}
+```
+
+---
+
+## パフォーマンス
+
+### 動的インポート
+```typescript
+import dynamic from 'next/dynamic';
+
+const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
+  loading: () => <p>読み込み中...</p>,
+  ssr: false,
+});
+```
+
+### メモ化
+```typescript
+import { useMemo } from 'react';
+
+function ExpensiveComponent({ data }: { data: number[] }) {
+  const processedData = useMemo(() => {
+    return data.map(n => n * 2).filter(n => n > 10);
+  }, [data]);
+
+  return <div>{processedData.join(', ')}</div>;
+}
+```
+
+---
+
+## スタイリング（Tailwind CSS + Bootstrap）
+
+```typescript
+// Tailwind と Bootstrap を併用する場合
+export default function Button({ children }: { children: React.ReactNode }) {
+  return (
+    <button className="btn btn-primary px-4 py-2 rounded-lg hover:opacity-80 transition">
+      {children}
+    </button>
+  );
+}
+```
+
+---
+
+## 環境変数
+
+```typescript
+// .env.local.frontend
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+API_SECRET=your-secret-key
+```
+
+```typescript
+// lib/axios.ts
+import axios from 'axios';
+
+const axiosInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export default axiosInstance;
+```
+
+---
+
+## 禁止事項
+- ❌ ホストでの `npm install` 実行
+- ❌ `any` 型の使用（やむを得ない場合を除く）
+- ❌ 環境変数のハードコード
+- ❌ クライアントコンポーネントの過度な使用
+- ❌ 不要な `'use client'` ディレクティブ
