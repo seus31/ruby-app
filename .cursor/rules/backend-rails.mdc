@@ -1,0 +1,269 @@
+---
+description: Ruby on Rails バックエンド開発ルール（Cursor用）
+---
+
+# Ruby on Rails 開発ルール
+
+## 🚨 環境汚染の防止（絶対厳守）
+**ホストマシンで `bundle install` や Rails コマンドを実行しない。**
+
+すべてのコマンドは Docker コンテナ内で実行する：
+```bash
+docker compose run --rm backend bundle install
+docker compose run --rm backend bundle exec rails db:migrate
+docker compose run --rm backend bundle exec rails console
+docker compose run --rm backend bundle exec rspec
+```
+
+---
+
+## ディレクトリ構成
+```
+backend/
+├── app/
+│   ├── controllers/
+│   │   └── api/v1/          # API v1 エンドポイント
+│   ├── models/              # ActiveRecordモデル
+│   ├── serializers/         # active_model_serializers
+│   └── services/            # ビジネスロジック層
+├── config/
+│   ├── routes.rb
+│   └── database.yml
+├── db/
+│   └── migrate/
+└── spec/                    # RSpecテスト
+```
+
+---
+
+## コーディングスタイル
+
+### コントローラ
+```ruby
+class Api::V1::UsersController < ApplicationController
+  before_action :authenticate_user!, only: [:update, :destroy]
+  before_action :set_user, only: [:show, :update, :destroy]
+
+  def index
+    @users = User.all
+    render json: @users, each_serializer: UserSerializer
+  end
+
+  def show
+    render json: @user, serializer: UserSerializer
+  end
+
+  def create
+    @user = User.new(user_params)
+    
+    if @user.save
+      render json: @user, serializer: UserSerializer, status: :created
+    else
+      render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
+  private
+
+  def set_user
+    @user = User.find(params[:id])
+  end
+
+  def user_params
+    params.require(:user).permit(:name, :email, :password)
+  end
+end
+```
+
+### モデル
+```ruby
+class User < ApplicationRecord
+  has_secure_password
+
+  validates :name, presence: true, length: { maximum: 100 }
+  validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :password, length: { minimum: 8 }, if: :password_digest_changed?
+
+  # スコープは上部に配置
+  scope :active, -> { where(active: true) }
+  scope :recent, -> { order(created_at: :desc) }
+
+  # クラスメソッド
+  def self.find_by_email(email)
+    find_by(email: email.downcase)
+  end
+
+  # インスタンスメソッド
+  def full_name
+    "#{first_name} #{last_name}"
+  end
+
+  private
+
+  # プライベートメソッドは最下部
+  def normalize_email
+    self.email = email.downcase
+  end
+end
+```
+
+### Serializer
+```ruby
+class UserSerializer < ActiveModel::Serializer
+  attributes :id, :name, :email, :created_at
+
+  # パスワードなどの機密情報は絶対に含めない
+  def created_at
+    object.created_at.iso8601
+  end
+end
+```
+
+### Service Object
+```ruby
+# app/services/user_authentication_service.rb
+class UserAuthenticationService
+  def initialize(email, password)
+    @email = email
+    @password = password
+  end
+
+  def call
+    user = User.find_by_email(@email)
+    return failure('Invalid email or password') unless user&.authenticate(@password)
+
+    token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
+    success(user, token)
+  end
+
+  private
+
+  def success(user, token)
+    { success: true, user: user, token: token }
+  end
+
+  def failure(message)
+    { success: false, error: message }
+  end
+end
+```
+
+---
+
+## テスト（RSpec）
+
+### モデルテスト
+```ruby
+# spec/models/user_spec.rb
+require 'rails_helper'
+
+RSpec.describe User, type: :model do
+  describe 'validations' do
+    it { should validate_presence_of(:name) }
+    it { should validate_presence_of(:email) }
+    it { should validate_uniqueness_of(:email) }
+  end
+
+  describe '#full_name' do
+    it 'returns the full name' do
+      user = User.new(first_name: 'John', last_name: 'Doe')
+      expect(user.full_name).to eq('John Doe')
+    end
+  end
+end
+```
+
+### コントローラテスト
+```ruby
+# spec/requests/api/v1/users_spec.rb
+require 'rails_helper'
+
+RSpec.describe 'Api::V1::Users', type: :request do
+  describe 'GET /api/v1/users' do
+    it 'returns all users' do
+      create_list(:user, 3)
+      get '/api/v1/users'
+      
+      expect(response).to have_http_status(:ok)
+      expect(JSON.parse(response.body).size).to eq(3)
+    end
+  end
+end
+```
+
+---
+
+## データベース
+
+### マイグレーション作成
+```bash
+docker compose run --rm backend bundle exec rails g migration CreateUsers name:string email:string
+```
+
+### マイグレーション実行
+```bash
+docker compose run --rm backend bundle exec rails db:migrate
+```
+
+### ロールバック
+```bash
+docker compose run --rm backend bundle exec rails db:rollback
+```
+
+---
+
+## セキュリティ
+
+### Strong Parameters（必須）
+```ruby
+def user_params
+  params.require(:user).permit(:name, :email, :password)
+end
+```
+
+### CSRF対策
+- APIモードでは `protect_from_forgery` は不要
+- JWT認証を使用する場合はトークンベース認証
+
+### 環境変数
+```ruby
+# config/database.yml
+production:
+  <<: *default
+  database: <%= ENV['DATABASE_NAME'] %>
+  username: <%= ENV['DATABASE_USER'] %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
+```
+
+---
+
+## パフォーマンス
+
+### N+1クエリの防止
+```ruby
+# Bad
+users = User.all
+users.each { |user| puts user.posts.count }
+
+# Good
+users = User.includes(:posts)
+users.each { |user| puts user.posts.count }
+```
+
+### インデックスの追加
+```ruby
+class AddIndexToUsersEmail < ActiveRecord::Migration[7.1]
+  def change
+    add_index :users, :email, unique: true
+  end
+end
+```
+
+---
+
+## 禁止事項
+- ❌ ホストでの `bundle install` 実行
+- ❌ Strong Parameters を使わない実装
+- ❌ パスワードなどの機密情報をログに出力
+- ❌ N+1クエリを放置
+- ❌ インデックスなしの WHERE 句
