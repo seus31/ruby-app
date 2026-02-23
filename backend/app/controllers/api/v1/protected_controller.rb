@@ -4,19 +4,19 @@ module Api
   module V1
     # Api/v1/ProtectedController
     class ProtectedController < BaseController
-      SECRET_KEY = Rails.application.secrets.secret_key_base.to_s
+      before_action :authenticate_user!
 
-      def encode_token(payload)
-        payload[:exp] = 24.hours.from_now.to_i
-        JWT.encode(payload, SECRET_KEY)
+      def authenticate_user!
+        token = request.headers["Authorization"]&.split(" ")&.last
+        decoded = decode_token(token)
+        @current_user = User.find(decoded[0]["user_id"]) if decoded.present?
+        return if @current_user
+
+        render json: { error: "Unauthorized" }, status: :unauthorized
       end
 
-      def decode_token(token)
-        begin
-          JWT.decode(token, SECRET_KEY, true, algorithm: 'HS256')
-        rescue JWT::DecodeError => e
-          nil
-        end
+      def current_user
+        @current_user
       end
     end
   end
