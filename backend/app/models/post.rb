@@ -15,8 +15,13 @@ class Post < ApplicationRecord
   validates :title, :body, presence: true
 
   before_validation :generate_slug, on: :create
+  before_save :set_published_at, if: :status_changed?
 
   private
+
+  def set_published_at
+    self.published_at = Time.current if published?
+  end
 
   def generate_slug
     return if slug.present?
