@@ -7,7 +7,10 @@ module Api
 
       def index
         posts = Post.published
-        posts = posts.where("title LIKE ? OR body LIKE ?", "%#{sanitize_sql_like(params[:q])}%", "%#{sanitize_sql_like(params[:q])}%") if params[:q].present?
+        if params[:q].present?
+          sanitized = ActiveRecord::Base.sanitize_sql_like(params[:q])
+          posts = posts.where("title LIKE ? OR body LIKE ?", "%#{sanitized}%", "%#{sanitized}%")
+        end
         posts = posts.joins(:categories).where(categories: { slug: params[:category_slug] }) if params[:category_slug].present?
         posts = posts.joins(:tags).where(tags: { slug: params[:tag_slug] }) if params[:tag_slug].present?
         posts = posts.where(user_id: params[:user_id]) if params[:user_id].present?
