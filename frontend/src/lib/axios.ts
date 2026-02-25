@@ -2,9 +2,7 @@ import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { getToken, removeToken } from './auth';
 
 const baseURL =
-  typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL
-    ? process.env.NEXT_PUBLIC_API_BASE_URL
-    : 'http://localhost:3222';
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3222';
 
 export const apiClient = axios.create({
   baseURL,

@@ -1,4 +1,8 @@
-const TOKEN_KEY = 'token';
+/**
+ * JWT を localStorage に保存している。
+ * TODO: 本番では XSS 対策のため httpOnly Cookie での保持を検討する。
+ */
+const TOKEN_KEY = 'ruby_app_auth_token';
 
 /** 保存されている JWT を取得する。SSR 時は null。 */
 export const getToken = (): string | null => {
@@ -18,12 +22,14 @@ export const removeToken = (): void => {
   localStorage.removeItem(TOKEN_KEY);
 };
 
-/** JWT の payload の exp（秒）をデコードする。不正なトークンは null。 */
+/** JWT の payload の exp（秒）をデコードする。不正なトークンは null。base64url (RFC 7515) を標準 base64 に変換してから atob。 */
 function decodeExp(token: string): number | null {
   try {
     const payload = token.split('.')[1];
     if (!payload) return null;
-    const decoded = JSON.parse(atob(payload)) as { exp?: number };
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+    const decoded = JSON.parse(atob(padded)) as { exp?: number };
     return typeof decoded.exp === 'number' ? decoded.exp : null;
   } catch {
     return null;
