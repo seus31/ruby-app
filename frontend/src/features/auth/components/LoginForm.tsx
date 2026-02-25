@@ -8,7 +8,7 @@ export default function LoginForm() {
   const { login, loading, error } = useAuth();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFieldErrors({});
     const formData = new FormData(e.currentTarget);
@@ -22,7 +22,7 @@ export default function LoginForm() {
       const errors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
         const path = err.path[0];
-        if (path && typeof path === 'string') {
+        if (path && typeof path === 'string' && !errors[path]) {
           errors[path] = err.message;
         }
       });
@@ -30,7 +30,7 @@ export default function LoginForm() {
       return;
     }
 
-    login(result.data.email, result.data.password);
+    await login(result.data.email, result.data.password);
   };
 
   return (

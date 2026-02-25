@@ -8,7 +8,7 @@ export default function RegisterForm() {
   const { register: registerUser, loading, error } = useAuth();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFieldErrors({});
     const formData = new FormData(e.currentTarget);
@@ -23,7 +23,7 @@ export default function RegisterForm() {
       const errors: Record<string, string> = {};
       result.error.errors.forEach((err) => {
         const path = err.path[0];
-        if (path && typeof path === 'string') {
+        if (path && typeof path === 'string' && !errors[path]) {
           errors[path] = err.message;
         }
       });
@@ -31,7 +31,7 @@ export default function RegisterForm() {
       return;
     }
 
-    registerUser(result.data.name, result.data.email, result.data.password);
+    await registerUser(result.data.name, result.data.email, result.data.password);
   };
 
   return (
