@@ -6,7 +6,7 @@ export type User = {
   name: string;
   bio: string | null;
   avatar_url: string | null;
-  posts_count?: number;
+  posts_count: number;
   created_at: string;
 };
 

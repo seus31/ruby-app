@@ -24,7 +24,7 @@ export type Post = {
   tags: Tag[];
   comments_count: number;
   likes_count: number;
-  liked_by_current_user?: boolean;
+  liked_by_current_user: boolean | null;
   created_at: string;
   updated_at: string;
 };

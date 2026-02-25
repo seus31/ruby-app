@@ -6,5 +6,5 @@ export type Category = {
   category_name: string;
   slug: string;
   description: string | null;
-  posts_count?: number;
+  posts_count: number;
 };
