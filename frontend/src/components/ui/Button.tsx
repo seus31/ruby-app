@@ -36,7 +36,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`btn ${variantClass[variant]} ${sizeClass[size]} ${className}`.trim()}
+      className={['btn', variantClass[variant], sizeClass[size], className].filter(Boolean).join(' ')}
       disabled={disabled}
       {...rest}
     >

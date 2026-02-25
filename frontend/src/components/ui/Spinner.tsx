@@ -8,7 +8,7 @@ type SpinnerProps = {
 export default function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
     <div
-      className={`spinner-border ${size === 'sm' ? 'spinner-border-sm' : ''} ${className}`.trim()}
+      className={['spinner-border', size === 'sm' ? 'spinner-border-sm' : '', className].filter(Boolean).join(' ')}
       role="status"
       aria-label="読み込み中"
     >

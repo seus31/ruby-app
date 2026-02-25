@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 type ModalProps = {
   open: boolean;
+  /** モーダルを閉じる関数。useCallback でメモ化すると useEffect の過剰な再実行を防げます。 */
   onClose: () => void;
   title: string;
   children: React.ReactNode;

@@ -1,76 +1,51 @@
 'use client';
 
 import Link from 'next/link';
+import { Navbar, Nav, Container } from 'react-bootstrap';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export default function Header() {
   const { isAuthenticated, logout } = useAuth();
 
   return (
-    <header className="navbar navbar-expand-md navbar-light bg-light border-bottom">
-      <div className="container">
-        <Link href="/" className="navbar-brand">
+    <Navbar expand="md" bg="light" className="border-bottom">
+      <Container>
+        <Navbar.Brand as={Link} href="/">
           ブログ
-        </Link>
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="メニューを開く"
-        >
-          <span className="navbar-toggler-icon" />
-        </button>
-        <nav className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav me-auto">
-            <li className="nav-item">
-              <Link href="/" className="nav-link">
-                トップ
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link href="/posts" className="nav-link">
-                記事一覧
-              </Link>
-            </li>
+        </Navbar.Brand>
+        <Navbar.Toggle aria-controls="navbarNav" aria-label="メニューを開く" />
+        <Navbar.Collapse id="navbarNav">
+          <Nav className="me-auto">
+            <Nav.Link as={Link} href="/">
+              トップ
+            </Nav.Link>
+            <Nav.Link as={Link} href="/posts">
+              記事一覧
+            </Nav.Link>
             {isAuthenticated && (
-              <li className="nav-item">
-                <Link href="/dashboard" className="nav-link">
-                  ダッシュボード
-                </Link>
-              </li>
+              <Nav.Link as={Link} href="/dashboard">
+                ダッシュボード
+              </Nav.Link>
             )}
-          </ul>
-          <ul className="navbar-nav">
+          </Nav>
+          <Nav>
             {isAuthenticated ? (
-              <li className="nav-item">
-                <button
-                  type="button"
-                  className="nav-link btn btn-link"
-                  onClick={logout}
-                >
-                  ログアウト
-                </button>
-              </li>
+              <Nav.Link as="button" type="button" onClick={logout} className="btn btn-link p-0 border-0">
+                ログアウト
+              </Nav.Link>
             ) : (
               <>
-                <li className="nav-item">
-                  <Link href="/login" className="nav-link">
-                    ログイン
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link href="/register" className="nav-link">
-                    会員登録
-                  </Link>
-                </li>
+                <Nav.Link as={Link} href="/login">
+                  ログイン
+                </Nav.Link>
+                <Nav.Link as={Link} href="/register">
+                  会員登録
+                </Nav.Link>
               </>
             )}
-          </ul>
-        </nav>
-      </div>
-    </header>
+          </Nav>
+        </Navbar.Collapse>
+      </Container>
+    </Navbar>
   );
 }

@@ -22,7 +22,7 @@ export default function Alert({
 }: AlertProps) {
   return (
     <div
-      className={`alert ${variantClass[variant]} ${onDismiss ? 'alert-dismissible fade show' : ''} ${className}`.trim()}
+      className={['alert', variantClass[variant], onDismiss ? 'alert-dismissible fade show' : '', className].filter(Boolean).join(' ')}
       role="alert"
     >
       {children}
