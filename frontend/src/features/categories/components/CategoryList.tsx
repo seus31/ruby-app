@@ -16,10 +16,16 @@ export default function CategoryList({ className = '' }: CategoryListProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getCategories()
+    const controller = new AbortController();
+    getCategories(controller.signal)
       .then(setCategories)
-      .catch(() => setError('カテゴリの取得に失敗しました'))
+      .catch((err: unknown) => {
+        if (!controller.signal.aborted) {
+          setError('カテゴリの取得に失敗しました');
+        }
+      })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, []);
 
   if (loading) {
