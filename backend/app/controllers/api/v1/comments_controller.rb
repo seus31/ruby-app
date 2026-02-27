@@ -3,11 +3,12 @@
 module Api
   module V1
     class CommentsController < ProtectedController
+      skip_before_action :authenticate_user!, only: [:index]
       before_action :set_post
       before_action :set_comment, only: [:destroy]
 
       def index
-        comments = @post.comments.where(parent_id: nil).includes(:replies, :user)
+        comments = @post.comments.where(parent_id: nil).includes(replies: [{ replies: :user }, :user], :user)
         render json: comments, each_serializer: CommentSerializer
       end
 
