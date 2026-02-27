@@ -3,6 +3,7 @@
 module Api
   module V1
     class PostsController < ProtectedController
+      skip_before_action :authenticate_user!, only: %i[index show]
       before_action :set_post, only: %i[show update destroy]
 
       def index
