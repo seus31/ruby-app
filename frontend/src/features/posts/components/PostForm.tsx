@@ -25,6 +25,7 @@ export default function PostForm({
 }: PostFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -41,8 +42,17 @@ export default function PostForm({
   });
 
   useEffect(() => {
-    getCategories().then(setCategories).catch(() => {});
-    getTags().then(setTags).catch(() => {});
+    const controller = new AbortController();
+    setLoadError(null);
+    Promise.all([
+      getCategories(controller.signal).then(setCategories).catch((_err: unknown) => {
+        if (!controller.signal.aborted) setLoadError('カテゴリ・タグの取得に失敗しました');
+      }),
+      getTags(controller.signal).then(setTags).catch((_err: unknown) => {
+        if (!controller.signal.aborted) setLoadError('カテゴリ・タグの取得に失敗しました');
+      }),
+    ]).catch(() => {});
+    return () => controller.abort();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,9 +96,9 @@ export default function PostForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      {error && (
+      {(loadError || error) && (
         <div className="alert alert-danger mb-3" role="alert">
-          {error}
+          {loadError ?? error}
         </div>
       )}
 

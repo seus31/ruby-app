@@ -1,29 +1,28 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Post } from '@/types/post';
 import CategoryBadge from '@/features/categories/components/CategoryBadge';
 import TagBadge from '@/features/tags/components/TagBadge';
+import { formatDate } from '@/lib/date';
 
 type PostCardProps = {
   post: Post;
   className?: string;
 };
 
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
 export default function PostCard({ post, className = '' }: PostCardProps) {
   return (
     <article className={['card h-100', className].filter(Boolean).join(' ')}>
       {post.thumbnail_url && (
-        <Link href={`/posts/${encodeURIComponent(post.slug)}`}>
-          <img
+        <Link href={`/posts/${encodeURIComponent(post.slug)}`} style={{ position: 'relative', display: 'block', height: '12rem' }}>
+          <Image
             src={post.thumbnail_url}
             alt=""
+            fill
             className="card-img-top"
-            style={{ height: '12rem', objectFit: 'cover' }}
+            style={{ objectFit: 'cover' }}
+            sizes="(max-width: 768px) 100vw, 33vw"
+            unoptimized
           />
         </Link>
       )}

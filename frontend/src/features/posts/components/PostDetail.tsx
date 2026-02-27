@@ -1,18 +1,16 @@
 'use client';
 
-import Link from 'next/link';
+import Image from 'next/image';
 import { usePost } from '../hooks/usePost';
 import LikeButton from '@/features/likes/components/LikeButton';
 import Spinner from '@/components/ui/Spinner';
+import CategoryBadge from '@/features/categories/components/CategoryBadge';
+import TagBadge from '@/features/tags/components/TagBadge';
+import { formatDate } from '@/lib/date';
 
 type PostDetailProps = {
   slug: string;
 };
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-}
 
 export default function PostDetail({ slug }: PostDetailProps) {
   const { post, loading, error } = usePost(slug);
@@ -32,12 +30,17 @@ export default function PostDetail({ slug }: PostDetailProps) {
   return (
     <article>
       {post.thumbnail_url && (
-        <img
-          src={post.thumbnail_url}
-          alt=""
-          className="img-fluid rounded mb-3"
-          style={{ maxHeight: '400px', objectFit: 'cover', width: '100%' }}
-        />
+        <div className="rounded mb-3 overflow-hidden" style={{ position: 'relative', maxHeight: '400px', width: '100%' }}>
+          <Image
+            src={post.thumbnail_url}
+            alt=""
+            width={800}
+            height={400}
+            className="img-fluid"
+            style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+            unoptimized
+          />
+        </div>
       )}
       <h1 className="mb-2">{post.title}</h1>
       <p className="text-muted small mb-3">
@@ -48,14 +51,10 @@ export default function PostDetail({ slug }: PostDetailProps) {
       </p>
       <div className="d-flex flex-wrap gap-1 mb-3">
         {post.categories.map((c) => (
-          <Link key={c.id} href={`/categories/${encodeURIComponent(c.slug)}`} className="badge text-bg-secondary text-decoration-none">
-            {c.category_name}
-          </Link>
+          <CategoryBadge key={c.id} category={c} />
         ))}
         {post.tags.map((t) => (
-          <Link key={t.id} href={`/tags/${encodeURIComponent(t.slug)}`} className="badge text-bg-light border text-decoration-none">
-            {t.name}
-          </Link>
+          <TagBadge key={t.id} tag={t} />
         ))}
       </div>
 
