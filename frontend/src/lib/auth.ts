@@ -22,19 +22,31 @@ export const removeToken = (): void => {
   localStorage.removeItem(TOKEN_KEY);
 };
 
-/** JWT の payload の exp（秒）をデコードする。不正なトークンは null。base64url (RFC 7515) を標準 base64 に変換してから atob。 */
-function decodeExp(token: string): number | null {
+/** JWT の payload をデコードする。不正なトークンは null。base64url (RFC 7515) を標準 base64 に変換してから atob。 */
+function decodePayload(token: string): { exp?: number; user_id?: number } | null {
   try {
     const payload = token.split('.')[1];
     if (!payload) return null;
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
-    const decoded = JSON.parse(atob(padded)) as { exp?: number };
-    return typeof decoded.exp === 'number' ? decoded.exp : null;
+    return JSON.parse(atob(padded)) as { exp?: number; user_id?: number };
   } catch {
     return null;
   }
 }
+
+function decodeExp(token: string): number | null {
+  const decoded = decodePayload(token);
+  return decoded && typeof decoded.exp === 'number' ? decoded.exp : null;
+}
+
+/** ログイン中ユーザーの ID。JWT の payload.user_id を返す。未認証・不正トークンは null。 */
+export const getCurrentUserId = (): number | null => {
+  const token = getToken();
+  if (!token) return null;
+  const decoded = decodePayload(token);
+  return decoded && typeof decoded.user_id === 'number' ? decoded.user_id : null;
+};
 
 /**
  * トークンが存在し、有効期限（exp）が切れていなければ true。
