@@ -4,17 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { getPosts, type GetPostsParams } from '../api';
 import type { Post, PostMeta } from '@/types/post';
 
-type UsePostsParams = Omit<GetPostsParams, 'signal'>;
+type UsePostsParams = Omit<GetPostsParams, 'signal'> & { skip?: boolean };
 
 export function usePosts(initialParams: UsePostsParams = {}) {
+  const { skip = false, ...restParams } = initialParams;
   const [posts, setPosts] = useState<Post[]>([]);
   const [meta, setMeta] = useState<PostMeta | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!skip);
   const [error, setError] = useState<string | null>(null);
   const [params, setParams] = useState<UsePostsParams>({
     page: 1,
     per_page: 20,
-    ...initialParams,
+    ...restParams,
   });
 
   const fetchPosts = useCallback((signal?: AbortSignal) => {
@@ -34,10 +35,11 @@ export function usePosts(initialParams: UsePostsParams = {}) {
   }, [params.page, params.per_page, params.q, params.category_slug, params.tag_slug, params.user_id]);
 
   useEffect(() => {
+    if (skip) return;
     const controller = new AbortController();
     fetchPosts(controller.signal);
     return () => controller.abort();
-  }, [fetchPosts]);
+  }, [skip, fetchPosts]);
 
   const setPage = useCallback((page: number) => {
     setParams((prev) => ({ ...prev, page }));
