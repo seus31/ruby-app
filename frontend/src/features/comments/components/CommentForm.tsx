@@ -3,25 +3,22 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { useComments } from '../hooks/useComments';
+import type { CreateCommentParams } from '../api';
 import Button from '@/components/ui/Button';
 
 type CommentFormProps = {
-  postSlug: string;
+  onAddComment: (params: CreateCommentParams) => Promise<void>;
   parentId?: number | null;
-  onSuccess?: () => void;
   className?: string;
 };
 
 export default function CommentForm({
-  postSlug,
+  onAddComment,
   parentId = null,
-  onSuccess,
   className = '',
 }: CommentFormProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { addComment } = useComments(postSlug);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +37,8 @@ export default function CommentForm({
     setLoading(true);
     setError(null);
     try {
-      await addComment({ body: trimmed, parent_id: parentId ?? undefined });
+      await onAddComment({ body: trimmed, parent_id: parentId ?? undefined });
       setBody('');
-      onSuccess?.();
     } catch {
       setError('投稿に失敗しました。再度お試しください。');
     } finally {

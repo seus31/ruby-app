@@ -8,7 +8,7 @@ module Api
       before_action :set_comment, only: [:destroy]
 
       def index
-        comments = @post.comments.where(parent_id: nil).includes(:replies, :user)
+        comments = @post.comments.where(parent_id: nil).includes(replies: [{ replies: :user }, :user], :user)
         render json: comments, each_serializer: CommentSerializer
       end
 

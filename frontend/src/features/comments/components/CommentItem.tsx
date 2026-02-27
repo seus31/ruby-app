@@ -38,7 +38,7 @@ export default function CommentItem({
         )}
       </div>
       <p className="mb-1 mt-1">{comment.body}</p>
-      {comment.replies.length > 0 && (
+      {comment.replies.length > 0 && depth < 5 && (
         <div className="mt-2">
           {comment.replies.map((reply) => (
             <CommentItem
