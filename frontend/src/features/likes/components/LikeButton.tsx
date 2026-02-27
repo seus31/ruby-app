@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { createLike, destroyLike } from '../api';
@@ -26,6 +26,12 @@ export default function LikeButton({
   const [liked, setLiked] = useState(initialLiked ?? false);
   const [count, setCount] = useState(initialCount);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLiked(initialLiked ?? false);
+    setCount(initialCount);
+  }, [initialLiked, initialCount]);
 
   const handleClick = async () => {
     if (!isAuthenticated) {
@@ -33,6 +39,7 @@ export default function LikeButton({
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       if (liked) {
         const { likes_count } = await destroyLike(postSlug);
@@ -46,22 +53,25 @@ export default function LikeButton({
         onUpdate?.(true, likes_count);
       }
     } catch {
-      // 401 は axios インターセプターで /login へリダイレクトされる
+      setError('操作に失敗しました。再度お試しください。');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={loading}
-      className={['btn btn-outline-danger btn-sm', className].filter(Boolean).join(' ')}
-      aria-pressed={liked}
-      aria-label={liked ? 'いいねを解除' : 'いいねする'}
-    >
-      {liked ? '♥' : '♡'} {count}
-    </button>
+    <span className="d-inline-flex align-items-center">
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading}
+        className={['btn btn-outline-danger btn-sm', className].filter(Boolean).join(' ')}
+        aria-pressed={liked}
+        aria-label={liked ? 'いいねを解除' : 'いいねする'}
+      >
+        {liked ? '♥' : '♡'} {count}
+      </button>
+      {error && <span className="text-danger small ms-1">{error}</span>}
+    </span>
   );
 }
