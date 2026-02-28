@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useComments } from '../hooks/useComments';
 import { getCurrentUserId } from '@/lib/auth';
 import CommentList from './CommentList';
@@ -14,7 +14,11 @@ type CommentSectionProps = {
 /** コメント一覧と投稿フォーム。useComments をここで一元管理し、CommentList と CommentForm に props で渡す。 */
 export default function CommentSection({ postSlug, className = '' }: CommentSectionProps) {
   const { comments, loading, error, addComment, removeComment } = useComments(postSlug);
-  const [currentUserId] = useState(() => getCurrentUserId());
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentUserId(getCurrentUserId());
+  }, []);
 
   return (
     <div className={className}>
