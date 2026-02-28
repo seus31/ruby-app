@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { usePost } from '../hooks/usePost';
 import LikeButton from '@/features/likes/components/LikeButton';
+import CommentSection from '@/features/comments/components/CommentSection';
 import Spinner from '@/components/ui/Spinner';
 import CategoryBadge from '@/features/categories/components/CategoryBadge';
 import TagBadge from '@/features/tags/components/TagBadge';
@@ -75,7 +76,7 @@ export default function PostDetail({ slug }: PostDetailProps) {
       </div>
 
       <hr />
-      <p className="text-muted small">コメント機能は Phase 14 で実装予定です。</p>
+      <CommentSection postSlug={post.slug} />
     </article>
   );
 }

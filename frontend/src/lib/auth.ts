@@ -35,6 +35,14 @@ function decodePayload(token: string): { exp?: number; user_id?: number } | null
   }
 }
 
+/** ログイン中ユーザーの JWT ペイロード。未認証・不正トークンは null。name/email はバックエンドの JWT に含まれていないため user_id のみ。 */
+export const getTokenPayload = (): { user_id: number } | null => {
+  const token = getToken();
+  if (!token) return null;
+  const decoded = decodePayload(token);
+  return decoded && typeof decoded.user_id === 'number' ? { user_id: decoded.user_id } : null;
+};
+
 function decodeExp(token: string): number | null {
   const decoded = decodePayload(token);
   return decoded && typeof decoded.exp === 'number' ? decoded.exp : null;

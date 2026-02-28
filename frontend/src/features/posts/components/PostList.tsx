@@ -1,6 +1,7 @@
 'use client';
 
 import { usePosts } from '../hooks/usePosts';
+import type { Post, PostMeta } from '@/types/post';
 import PostCard from './PostCard';
 import Spinner from '@/components/ui/Spinner';
 import Pagination from '@/components/ui/Pagination';
@@ -9,6 +10,12 @@ type PostListProps = {
   categorySlug?: string;
   tagSlug?: string;
   userId?: number;
+  /** 親で usePosts を管理する場合は渡す（検索・ページネーションを親と共有） */
+  posts?: Post[];
+  meta?: PostMeta | null;
+  loading?: boolean;
+  error?: string | null;
+  setPage?: (page: number) => void;
   className?: string;
 };
 
@@ -16,13 +23,25 @@ export default function PostList({
   categorySlug,
   tagSlug,
   userId,
+  posts: controlledPosts,
+  meta: controlledMeta,
+  loading: controlledLoading,
+  error: controlledError,
+  setPage: controlledSetPage,
   className = '',
 }: PostListProps) {
-  const { posts, meta, loading, error, setPage } = usePosts({
-    category_slug: categorySlug,
-    tag_slug: tagSlug,
-    user_id: userId,
-  });
+  const isControlled = controlledPosts !== undefined;
+  const hookResult = usePosts(
+    isControlled
+      ? { skip: true }
+      : { category_slug: categorySlug, tag_slug: tagSlug, user_id: userId }
+  );
+
+  const posts = isControlled ? controlledPosts! : hookResult.posts;
+  const meta = isControlled ? controlledMeta ?? null : hookResult.meta;
+  const loading = isControlled ? (controlledLoading ?? false) : hookResult.loading;
+  const error = isControlled ? controlledError ?? null : hookResult.error;
+  const setPage = isControlled ? (controlledSetPage ?? (() => {})) : hookResult.setPage;
 
   if (loading && posts.length === 0) {
     return (
