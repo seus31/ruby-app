@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { login as loginApi, register as registerApi } from '../api';
 import { setToken, removeToken, isTokenValid } from '@/lib/auth';
@@ -16,7 +16,11 @@ export function useAuth() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => isTokenValid());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(isTokenValid());
+  }, []);
 
   const login = useCallback(
     async (email: string, password: string) => {
