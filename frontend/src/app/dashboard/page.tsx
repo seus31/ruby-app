@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
-    getCurrentUserId().then(setUserId);
+    setUserId(getCurrentUserId());
   }, []);
 
   if (userId === null) {
@@ -28,7 +28,7 @@ export default function DashboardPage() {
           新規投稿
         </Link>
       </div>
-      <PostList user_id={userId} />
+      <PostList userId={userId} />
     </div>
   );
 }

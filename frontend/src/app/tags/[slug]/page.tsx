@@ -1,4 +1,4 @@
-import TagPostList from './TagPostList';
+import TagPageContent from './TagPageContent';
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -6,10 +6,5 @@ type PageProps = {
 
 export default async function TagPage({ params }: PageProps) {
   const { slug } = await params;
-  return (
-    <div className="container py-4">
-      <h1 className="mb-4">タグ: {decodeURIComponent(slug)}</h1>
-      <TagPostList slug={slug} />
-    </div>
-  );
+  return <TagPageContent slug={slug} />;
 }

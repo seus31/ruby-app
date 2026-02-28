@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { getCurrentUserId } from '@/lib/auth';
 import { usePost } from '@/features/posts/hooks/usePost';
 import PostForm from '@/features/posts/components/PostForm';
 import Spinner from '@/components/ui/Spinner';
@@ -10,6 +11,7 @@ type Props = { slug: string };
 export default function EditPostPageContent({ slug }: Props) {
   const router = useRouter();
   const { post, loading } = usePost(slug);
+  const currentUserId = getCurrentUserId();
 
   if (loading && !post) {
     return (
@@ -23,6 +25,14 @@ export default function EditPostPageContent({ slug }: Props) {
     return (
       <div className="container py-4">
         <p className="text-danger">記事が見つかりません</p>
+      </div>
+    );
+  }
+
+  if (currentUserId === null || post.author.id !== currentUserId) {
+    return (
+      <div className="container py-4">
+        <p className="text-danger">この記事を編集する権限がありません。</p>
       </div>
     );
   }

@@ -1,9 +1,11 @@
 'use client';
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { getTokenPayload } from '@/lib/auth';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+  const payload = getTokenPayload();
 
   if (loading) {
     return (
@@ -13,7 +15,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated || !payload) {
     return (
       <div className="container py-4">
         <p className="text-muted">ログインするとプロフィールを表示できます。</p>
@@ -27,10 +29,10 @@ export default function ProfilePage() {
       <div className="card">
         <div className="card-body">
           <p className="mb-1">
-            <strong>名前:</strong> {user.name}
+            <strong>ユーザーID:</strong> {payload.user_id}
           </p>
-          <p className="mb-1">
-            <strong>メール:</strong> {user.email}
+          <p className="text-muted small mb-0">
+            名前・メールは /api/v1/users/me などの専用エンドポイント実装後に表示できます。
           </p>
         </div>
       </div>
